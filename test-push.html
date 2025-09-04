@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台推送测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-900 text-white p-6">
+    <div class="max-w-md mx-auto">
+        <h1 class="text-2xl font-bold mb-6">PWA 后台推送测试</h1>
+        
+        <div class="space-y-4">
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-semibold mb-2">Service Worker 状态</h3>
+                <div id="swStatus" class="text-gray-400">检查中...</div>
+            </div>
+            
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-semibold mb-2">通知权限</h3>
+                <div id="notificationStatus" class="text-gray-400">检查中...</div>
+                <button id="requestPermission" class="mt-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">
+                    请求权限
+                </button>
+            </div>
+            
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-semibold mb-2">测试功能</h3>
+                <div class="space-y-2">
+                    <button id="testNotification" class="w-full bg-green-600 px-4 py-2 rounded hover:bg-green-700">
+                        测试立即通知
+                    </button>
+                    <button id="startReminder" class="w-full bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">
+                        启动1分钟提醒测试
+                    </button>
+                    <button id="stopReminder" class="w-full bg-red-600 px-4 py-2 rounded hover:bg-red-700">
+                        停止提醒
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-semibold mb-2">日志</h3>
+                <div id="log" class="text-sm text-gray-400 max-h-40 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let registration = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div>[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        async function checkServiceWorker() {
+            const statusDiv = document.getElementById('swStatus');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    registration = await navigator.serviceWorker.register('sw.js');
+                    statusDiv.innerHTML = `
+                        <div class="text-green-400">✅ 已注册</div>
+                        <div class="text-xs">状态: ${registration.active ? '激活' : '等待激活'}</div>
+                    `;
+                    log('Service Worker 注册成功');
+                    
+                    // 等待激活
+                    if (registration.installing) {
+                        await new Promise(resolve => {
+                            registration.installing.addEventListener('statechange', () => {
+                                if (registration.installing.state === 'activated') {
+                                    resolve();
+                                }
+                            });
+                        });
+                    }
+                    
+                } catch (error) {
+                    statusDiv.innerHTML = `<div class="text-red-400">❌ 注册失败: ${error.message}</div>`;
+                    log('Service Worker 注册失败: ' + error.message);
+                }
+            } else {
+                statusDiv.innerHTML = '<div class="text-red-400">❌ 不支持 Service Worker</div>';
+                log('浏览器不支持 Service Worker');
+            }
+        }
+        
+        function checkNotificationPermission() {
+            const statusDiv = document.getElementById('notificationStatus');
+            
+            if ('Notification' in window) {
+                const permission = Notification.permission;
+                let statusText = '';
+                let statusColor = '';
+                
+                switch (permission) {
+                    case 'granted':
+                        statusText = '✅ 已授权';
+                        statusColor = 'text-green-400';
+                        break;
+                    case 'denied':
+                        statusText = '❌ 已拒绝';
+                        statusColor = 'text-red-400';
+                        break;
+                    case 'default':
+                        statusText = '⏳ 未设置';
+                        statusColor = 'text-yellow-400';
+                        break;
+                }
+                
+                statusDiv.innerHTML = `<div class="${statusColor}">${statusText}</div>`;
+                log('通知权限状态: ' + permission);
+            } else {
+                statusDiv.innerHTML = '<div class="text-red-400">❌ 不支持通知</div>';
+                log('浏览器不支持通知');
+            }
+        }
+        
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                log('通知权限请求结果: ' + permission);
+                checkNotificationPermission();
+            }
+        }
+        
+        function testNotification() {
+            if (Notification.permission === 'granted') {
+                new Notification('测试通知', {
+                    body: '这是一个测试通知 💧',
+                    icon: '/icons/icon-192x192.png',
+                    tag: 'test'
+                });
+                log('发送测试通知');
+            } else {
+                log('通知权限未授权');
+            }
+        }
+        
+        function startReminderTest() {
+            if (registration && registration.active) {
+                registration.active.postMessage({
+                    type: 'UPDATE_REMINDER_SETTINGS',
+                    data: {
+                        isActive: true,
+                        interval: 1, // 1分钟测试
+                        lastReminder: 0 // 立即触发
+                    }
+                });
+                log('启动1分钟提醒测试');
+            } else {
+                log('Service Worker 未就绪');
+            }
+        }
+        
+        function stopReminderTest() {
+            if (registration && registration.active) {
+                registration.active.postMessage({
+                    type: 'UPDATE_REMINDER_SETTINGS',
+                    data: {
+                        isActive: false
+                    }
+                });
+                log('停止提醒测试');
+            } else {
+                log('Service Worker 未就绪');
+            }
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkServiceWorker();
+            checkNotificationPermission();
+            
+            // 绑定事件
+            document.getElementById('requestPermission').addEventListener('click', requestNotificationPermission);
+            document.getElementById('testNotification').addEventListener('click', testNotification);
+            document.getElementById('startReminder').addEventListener('click', startReminderTest);
+            document.getElementById('stopReminder').addEventListener('click', stopReminderTest);
+            
+            log('测试页面初始化完成');
+        });
+    </script>
+</body>
+</html>

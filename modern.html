@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>AquaFlow - 未来感喝水助手</title>
+    
+    <!-- PWA配置 -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AquaFlow">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" href="favicon.ico">
+    
+    <!-- 现代化资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Space Grotesk', 'system-ui', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                    },
+                    animation: {
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-ring': 'pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite',
+                        'wave': 'wave 3s ease-in-out infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.5)' },
+                            '100%': { boxShadow: '0 0 40px rgba(99, 102, 241, 0.8)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '33%': { transform: 'translateY(-20px) rotate(120deg)' },
+                            '66%': { transform: 'translateY(-10px) rotate(240deg)' },
+                        },
+                        'pulse-ring': {
+                            '0%': { transform: 'scale(0.8)', opacity: '1' },
+                            '100%': { transform: 'scale(2)', opacity: '0' },
+                        },
+                        wave: {
+                            '0%, 100%': { transform: 'scaleY(1)' },
+                            '50%': { transform: 'scaleY(0.8)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            background: #0a0a0f;
+            overflow-x: hidden;
+        }
+        
+        .neon-border {
+            border: 2px solid transparent;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6, #06b6d4) border-box;
+            border-radius: 20px;
+            position: relative;
+        }
+        
+        .neon-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 2px;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6, #06b6d4);
+            border-radius: inherit;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: xor;
+        }
+        
+        .holographic {
+            background: linear-gradient(45deg, 
+                rgba(99, 102, 241, 0.1) 0%,
+                rgba(139, 92, 246, 0.1) 25%,
+                rgba(6, 182, 212, 0.1) 50%,
+                rgba(139, 92, 246, 0.1) 75%,
+                rgba(99, 102, 241, 0.1) 100%);
+            background-size: 400% 400%;
+            animation: shimmer 3s ease infinite;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .water-wave {
+            background: linear-gradient(180deg, 
+                transparent 0%, 
+                rgba(6, 182, 212, 0.3) 50%, 
+                rgba(6, 182, 212, 0.6) 100%);
+            border-radius: 50%;
+            animation: wave 3s ease-in-out infinite;
+        }
+        
+        .cyber-grid {
+            background-image: 
+                linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+        }
+        
+        .progress-liquid {
+            background: linear-gradient(180deg, 
+                #06b6d4 0%, 
+                #0891b2 50%, 
+                #0e7490 100%);
+            border-radius: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-liquid::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            animation: float 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-900 cyber-grid">
+    <!-- 动态背景粒子 -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-1/4 left-1/4 w-2 h-2 bg-indigo-400 rounded-full animate-pulse-ring"></div>
+        <div class="absolute top-3/4 right-1/4 w-1 h-1 bg-cyan-400 rounded-full animate-pulse-ring" style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-3/4 w-3 h-3 bg-purple-400 rounded-full animate-pulse-ring" style="animation-delay: 2s;"></div>
+        
+        <!-- 浮动几何形状 -->
+        <div class="absolute top-20 right-20 w-20 h-20 border border-indigo-500/30 rotate-45 animate-float"></div>
+        <div class="absolute bottom-20 left-20 w-16 h-16 border border-cyan-500/30 rounded-full animate-float" style="animation-delay: 3s;"></div>
+    </div>
+
+    <div class="relative z-10 min-h-screen flex flex-col">
+        <!-- 未来感顶部导航 -->
+        <nav class="p-6">
+            <div class="max-w-md mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-lg flex items-center justify-center animate-glow">
+                            <i class="fas fa-tint text-white text-lg"></i>
+                        </div>
+                        <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-lg blur opacity-30 animate-pulse"></div>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white glow-text">AquaFlow</h1>
+                        <p class="text-xs text-gray-400 font-mono">v2.0.1</p>
+                    </div>
+                </div>
+                <button id="settingsBtn" class="p-3 holographic rounded-xl hover:bg-white/10 transition-all duration-300">
+                    <i class="fas fa-sliders-h text-gray-300"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- 主要内容区域 -->
+        <main class="flex-1 px-6 pb-6">
+            <div class="max-w-md mx-auto space-y-8">
+                
+                <!-- 中央液体进度显示 -->
+                <div class="text-center">
+                    <div class="relative inline-block">
+                        <!-- 外圈发光效果 -->
+                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                        
+                        <!-- 主要进度圆环 -->
+                        <div class="relative w-64 h-64 mx-auto">
+                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                <!-- 背景圆环 -->
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+                                
+                                <!-- 进度圆环 -->
+                                <circle id="progressCircle" cx="50" cy="50" r="45" fill="none" 
+                                        stroke="url(#liquidGradient)" stroke-width="6" 
+                                        stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"
+                                        class="transition-all duration-1000 ease-out"/>
+                                
+                                <defs>
+                                    <linearGradient id="liquidGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#06b6d4"/>
+                                        <stop offset="50%" style="stop-color:#3b82f6"/>
+                                        <stop offset="100%" style="stop-color:#6366f1"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            
+                            <!-- 中心内容 -->
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-center">
+                                    <!-- 液体动画容器 -->
+                                    <div class="relative w-24 h-24 mx-auto mb-4">
+                                        <div class="w-full h-full water-wave rounded-full"></div>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span id="waterCount" class="text-3xl font-bold text-white glow-text">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-sm text-gray-400 font-mono">GLASSES</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 数据显示 -->
+                    <div class="mt-8 holographic rounded-2xl p-6">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="text-center">
+                                <div id="todayWater" class="text-2xl font-bold text-cyan-400 glow-text">0</div>
+                                <div class="text-xs text-gray-400 font-mono uppercase tracking-wider">ML TODAY</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-indigo-400 glow-text">2000</div>
+                                <div class="text-xs text-gray-400 font-mono uppercase tracking-wider">ML GOAL</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 液体进度条 -->
+                        <div class="mt-4 h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div id="liquidProgress" class="h-full progress-liquid transition-all duration-1000 ease-out" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 控制面板 -->
+                <div class="holographic rounded-3xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white flex items-center">
+                            <i class="fas fa-broadcast-tower text-indigo-400 mr-3"></i>
+                            REMINDER SYSTEM
+                        </h3>
+                        <div id="reminderStatus" class="px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider bg-gray-800 text-gray-400">
+                            OFFLINE
+                        </div>
+                    </div>
+                    
+                    <!-- 时间间隔选择 -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-300 mb-4 font-mono uppercase tracking-wider">INTERVAL</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="time-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-indigo-500 hover:bg-indigo-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-minutes="30">
+                                30 MIN
+                            </button>
+                            <button class="time-btn px-4 py-3 rounded-xl border-2 border-indigo-500 bg-indigo-500/20 text-indigo-300 transition-all duration-300 text-sm font-mono active" data-minutes="60">
+                                60 MIN
+                            </button>
+                            <button class="time-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-indigo-500 hover:bg-indigo-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-minutes="90">
+                                90 MIN
+                            </button>
+                            <button class="time-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-indigo-500 hover:bg-indigo-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-minutes="120">
+                                120 MIN
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 控制按钮 -->
+                    <button id="startBtn" class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 text-white py-4 rounded-2xl font-semibold text-lg hover:from-indigo-500 hover:to-cyan-500 transform hover:scale-[1.02] transition-all duration-300 shadow-lg animate-glow font-mono uppercase tracking-wider">
+                        <i class="fas fa-power-off mr-3"></i>
+                        ACTIVATE
+                    </button>
+                    
+                    <button id="stopBtn" class="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white py-4 rounded-2xl font-semibold text-lg hover:from-red-500 hover:to-pink-500 transform hover:scale-[1.02] transition-all duration-300 shadow-lg animate-glow font-mono uppercase tracking-wider hidden">
+                        <i class="fas fa-stop mr-3"></i>
+                        DEACTIVATE
+                    </button>
+                </div>
+
+                <!-- 下次提醒时间 -->
+                <div id="nextReminder" class="holographic rounded-2xl p-4 text-center hidden">
+                    <div class="flex items-center justify-center text-gray-300">
+                        <i class="fas fa-clock text-cyan-400 mr-3"></i>
+                        <span class="text-sm font-mono uppercase tracking-wider">NEXT:</span>
+                        <span id="nextTime" class="font-semibold ml-2 text-cyan-400"></span>
+                    </div>
+                </div>
+
+                <!-- 快速记录面板 -->
+                <div class="holographic rounded-2xl p-6">
+                    <h4 class="text-sm font-medium text-gray-300 mb-4 text-center font-mono uppercase tracking-wider">QUICK LOG</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <button onclick="addWater(250)" class="group relative overflow-hidden bg-gray-800/50 hover:bg-cyan-500/20 border border-gray-700 hover:border-cyan-500 rounded-xl py-4 px-3 text-center transition-all duration-300">
+                            <div class="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">💧</div>
+                            <div class="text-xs text-gray-400 font-mono">250ML</div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                        </button>
+                        <button onclick="addWater(500)" class="group relative overflow-hidden bg-gray-800/50 hover:bg-indigo-500/20 border border-gray-700 hover:border-indigo-500 rounded-xl py-4 px-3 text-center transition-all duration-300">
+                            <div class="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">🥤</div>
+                            <div class="text-xs text-gray-400 font-mono">500ML</div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-indigo-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                        </button>
+                        <button onclick="addWater(750)" class="group relative overflow-hidden bg-gray-800/50 hover:bg-purple-500/20 border border-gray-700 hover:border-purple-500 rounded-xl py-4 px-3 text-center transition-all duration-300">
+                            <div class="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">🍶</div>
+                            <div class="text-xs text-gray-400 font-mono">750ML</div>
+                            <div class="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 设置面板 -->
+    <div id="settingsPanel" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+        <div class="min-h-screen flex items-center justify-center p-6">
+            <div class="holographic rounded-3xl p-6 w-full max-w-md">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white glow-text">SYSTEM SETTINGS</h2>
+                    <button id="closeSettings" class="p-2 hover:bg-white/10 rounded-lg transition-all duration-300">
+                        <i class="fas fa-times text-gray-400"></i>
+                    </button>
+                </div>
+
+                <!-- 每日目标设置 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-300 mb-3 font-mono uppercase tracking-wider">DAILY GOAL (ML)</label>
+                    <div class="flex items-center space-x-4">
+                        <input id="dailyGoalInput" type="range" min="1000" max="4000" step="250" value="2000"
+                               class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <span id="dailyGoalValue" class="text-cyan-400 font-mono font-bold min-w-[60px]">2000</span>
+                    </div>
+                </div>
+
+                <!-- 提醒音效设置 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-300 mb-3 font-mono uppercase tracking-wider">NOTIFICATION SOUND</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="sound-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-cyan-500 hover:bg-cyan-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-sound="default">
+                            DEFAULT
+                        </button>
+                        <button class="sound-btn px-4 py-3 rounded-xl border-2 border-cyan-500 bg-cyan-500/20 text-cyan-300 transition-all duration-300 text-sm font-mono active" data-sound="water">
+                            WATER DROP
+                        </button>
+                        <button class="sound-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-cyan-500 hover:bg-cyan-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-sound="chime">
+                            CHIME
+                        </button>
+                        <button class="sound-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-cyan-500 hover:bg-cyan-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-sound="none">
+                            SILENT
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 主题设置 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-300 mb-3 font-mono uppercase tracking-wider">THEME</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="theme-btn px-4 py-3 rounded-xl border-2 border-indigo-500 bg-indigo-500/20 text-indigo-300 transition-all duration-300 text-sm font-mono active" data-theme="cyber">
+                            CYBER
+                        </button>
+                        <button class="theme-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-indigo-500 hover:bg-indigo-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-theme="ocean">
+                            OCEAN
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 数据管理 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-300 mb-3 font-mono uppercase tracking-wider">DATA MANAGEMENT</label>
+                    <div class="space-y-3">
+                        <button id="resetDataBtn" class="w-full px-4 py-3 rounded-xl border border-red-500/50 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all duration-300 text-sm font-mono">
+                            <i class="fas fa-trash mr-2"></i>
+                            RESET ALL DATA
+                        </button>
+                        <button id="exportDataBtn" class="w-full px-4 py-3 rounded-xl border border-green-500/50 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all duration-300 text-sm font-mono">
+                            <i class="fas fa-download mr-2"></i>
+                            EXPORT DATA
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 版本信息 -->
+                <div class="text-center pt-4 border-t border-gray-700">
+                    <div class="text-xs text-gray-500 font-mono">
+                        AquaFlow v2.0.1<br>
+                        PWA Enhanced Edition
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // 设置面板功能
+        document.addEventListener('DOMContentLoaded', () => {
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const closeSettings = document.getElementById('closeSettings');
+            const dailyGoalInput = document.getElementById('dailyGoalInput');
+            const dailyGoalValue = document.getElementById('dailyGoalValue');
+
+            // 打开设置面板
+            settingsBtn.addEventListener('click', () => {
+                settingsPanel.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+
+            // 关闭设置面板
+            function closeSettingsPanel() {
+                settingsPanel.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+
+            closeSettings.addEventListener('click', closeSettingsPanel);
+            settingsPanel.addEventListener('click', (e) => {
+                if (e.target === settingsPanel) {
+                    closeSettingsPanel();
+                }
+            });
+
+            // 每日目标滑块
+            dailyGoalInput.addEventListener('input', (e) => {
+                dailyGoalValue.textContent = e.target.value;
+                if (window.hydrateApp) {
+                    window.hydrateApp.dailyGoal = parseInt(e.target.value);
+                    window.hydrateApp.updateProgressRing();
+                    window.hydrateApp.saveSettings();
+                }
+            });
+
+            // 音效选择
+            document.querySelectorAll('.sound-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.sound-btn').forEach(b => {
+                        b.classList.remove('active', 'border-cyan-500', 'bg-cyan-500/20', 'text-cyan-300');
+                        b.classList.add('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
+                    });
+                    btn.classList.add('active', 'border-cyan-500', 'bg-cyan-500/20', 'text-cyan-300');
+                    btn.classList.remove('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
+
+                    // 保存音效设置
+                    if (window.hydrateApp) {
+                        window.hydrateApp.notificationSound = btn.dataset.sound;
+                        window.hydrateApp.saveSettings();
+                    }
+                });
+            });
+
+            // 主题选择
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.theme-btn').forEach(b => {
+                        b.classList.remove('active', 'border-indigo-500', 'bg-indigo-500/20', 'text-indigo-300');
+                        b.classList.add('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
+                    });
+                    btn.classList.add('active', 'border-indigo-500', 'bg-indigo-500/20', 'text-indigo-300');
+                    btn.classList.remove('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
+
+                    // 应用主题
+                    applyTheme(btn.dataset.theme);
+                });
+            });
+
+            // 重置数据
+            document.getElementById('resetDataBtn').addEventListener('click', () => {
+                if (confirm('确定要重置所有数据吗？此操作不可恢复！')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            });
+
+            // 导出数据
+            document.getElementById('exportDataBtn').addEventListener('click', () => {
+                const data = {
+                    settings: localStorage.getItem('hydrateSettings'),
+                    exportTime: new Date().toISOString()
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `aquaflow-data-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        });
+
+        // 主题切换功能
+        function applyTheme(theme) {
+            const root = document.documentElement;
+
+            switch (theme) {
+                case 'ocean':
+                    root.style.setProperty('--primary-color', '#0891b2');
+                    root.style.setProperty('--secondary-color', '#0e7490');
+                    break;
+                case 'cyber':
+                default:
+                    root.style.setProperty('--primary-color', '#6366f1');
+                    root.style.setProperty('--secondary-color', '#8b5cf6');
+                    break;
+            }
+
+            if (window.hydrateApp) {
+                window.hydrateApp.theme = theme;
+                window.hydrateApp.saveSettings();
+            }
+        }
+    </script>
+</body>
+</html>

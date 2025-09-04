@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>创建应用图标</title>
+</head>
+<body>
+    <h1>正在生成应用图标...</h1>
+    <canvas id="canvas" style="display: none;"></canvas>
+    
+    <script>
+        function createIcon(size) {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = size;
+            canvas.height = size;
+            
+            // 创建渐变背景
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#0ea5e9');
+            gradient.addColorStop(1, '#0284c7');
+            
+            // 绘制圆角矩形背景
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, size * 0.15);
+            ctx.fill();
+            
+            // 绘制水滴形状
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const dropSize = size * 0.3;
+            
+            // 水滴路径
+            ctx.arc(centerX, centerY + dropSize * 0.2, dropSize, 0.2 * Math.PI, 0.8 * Math.PI);
+            ctx.quadraticCurveTo(centerX, centerY - dropSize * 0.8, centerX, centerY + dropSize * 0.2);
+            ctx.fill();
+            
+            return canvas.toDataURL('image/png');
+        }
+        
+        // 生成所需的图标尺寸
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        
+        sizes.forEach(size => {
+            const dataUrl = createIcon(size);
+            const link = document.createElement('a');
+            link.download = `icon-${size}x${size}.png`;
+            link.href = dataUrl;
+            link.click();
+        });
+        
+        document.body.innerHTML = '<h1>图标生成完成！</h1><p>请将下载的图标文件放入 icons 文件夹中。</p>';
+        
+        // 添加圆角矩形支持
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                this.beginPath();
+                this.moveTo(x + radius, y);
+                this.lineTo(x + width - radius, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius);
+                this.lineTo(x + width, y + height - radius);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                this.lineTo(x + radius, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius);
+                this.lineTo(x, y + radius);
+                this.quadraticCurveTo(x, y, x + radius, y);
+                this.closePath();
+            };
+        }
+    </script>
+</body>
+</html>

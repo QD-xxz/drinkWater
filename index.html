@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>AquaFlow - 智能喝水提醒</title>
+
+    <!-- PWA配置 -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.svg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AquaFlow">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- 现代化资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 2s infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .water-drop {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(0deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50">
+    <!-- 背景装饰 -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float" style="animation-delay: 2s;"></div>
+        <div class="absolute top-40 left-1/2 w-80 h-80 bg-sky-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float" style="animation-delay: 4s;"></div>
+    </div>
+
+    <div class="relative z-10 min-h-screen flex flex-col">
+        <!-- 顶部导航 -->
+        <nav class="p-6">
+            <div class="max-w-md mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 water-drop bg-gradient-to-br from-blue-500 to-cyan-500"></div>
+                    <h1 class="text-xl font-semibold text-gray-800">Hydrate</h1>
+                </div>
+                <button class="p-2 rounded-full glass-effect hover:bg-white/20 transition-all duration-200">
+                    <i class="fas fa-cog text-gray-600"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- 主要内容 -->
+        <main class="flex-1 px-6 pb-6">
+            <div class="max-w-md mx-auto space-y-6">
+
+                <!-- 水滴进度指示器 -->
+                <div class="text-center">
+                    <div class="relative inline-block">
+                        <!-- 进度环 -->
+                        <svg class="w-48 h-48 progress-ring" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                            <circle id="progressCircle" cx="60" cy="60" r="54" fill="none" stroke="url(#gradient)" stroke-width="8"
+                                    stroke-linecap="round" stroke-dasharray="339.292" stroke-dashoffset="339.292"
+                                    class="progress-ring-circle"/>
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#0ea5e9"/>
+                                    <stop offset="100%" style="stop-color:#0284c7"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+
+                        <!-- 中心水滴图标 -->
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="w-16 h-16 water-drop bg-gradient-to-br from-blue-500 to-cyan-500 mx-auto mb-2 animate-bounce-slow"></div>
+                                <div id="waterCount" class="text-2xl font-bold text-gray-800">0</div>
+                                <div class="text-sm text-gray-500">杯水</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">保持水润，保持美丽</h2>
+                        <p class="text-gray-600">今天已喝水 <span id="todayWater" class="font-semibold text-blue-600">0ml</span> / 2000ml</p>
+                    </div>
+                </div>
+
+                <!-- 提醒设置卡片 -->
+                <div class="glass-effect rounded-3xl p-6 shadow-xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-bell text-blue-500 mr-2"></i>
+                            提醒设置
+                        </h3>
+                        <div id="reminderStatus" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            未开启
+                        </div>
+                    </div>
+
+                    <!-- 时间间隔选择 -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">提醒间隔</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="time-btn px-4 py-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 text-sm font-medium" data-minutes="30">
+                                30分钟
+                            </button>
+                            <button class="time-btn px-4 py-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 transition-all duration-200 text-sm font-medium active" data-minutes="60">
+                                1小时
+                            </button>
+                            <button class="time-btn px-4 py-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 text-sm font-medium" data-minutes="90">
+                                1.5小时
+                            </button>
+                            <button class="time-btn px-4 py-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 text-sm font-medium" data-minutes="120">
+                                2小时
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 控制按钮 -->
+                    <button id="startBtn" class="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-4 rounded-2xl font-semibold text-lg hover:from-blue-600 hover:to-cyan-600 transform hover:scale-[1.02] transition-all duration-200 shadow-lg">
+                        <i class="fas fa-play mr-2"></i>
+                        开始提醒
+                    </button>
+
+                    <button id="stopBtn" class="w-full bg-gradient-to-r from-red-500 to-pink-500 text-white py-4 rounded-2xl font-semibold text-lg hover:from-red-600 hover:to-pink-600 transform hover:scale-[1.02] transition-all duration-200 shadow-lg hidden">
+                        <i class="fas fa-stop mr-2"></i>
+                        停止提醒
+                    </button>
+                </div>
+
+                <!-- 下次提醒时间 -->
+                <div id="nextReminder" class="glass-effect rounded-2xl p-4 text-center hidden">
+                    <div class="flex items-center justify-center text-gray-700">
+                        <i class="fas fa-clock text-blue-500 mr-2"></i>
+                        <span class="text-sm">下次提醒：</span>
+                        <span id="nextTime" class="font-semibold ml-1"></span>
+                    </div>
+                </div>
+
+                <!-- 快速记录按钮 -->
+                <div class="glass-effect rounded-2xl p-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3 text-center">快速记录</h4>
+                    <div class="flex justify-center space-x-3">
+                        <button onclick="addWater(250)" class="flex-1 bg-white/50 hover:bg-white/80 border border-white/30 rounded-xl py-3 px-4 text-center transition-all duration-200">
+                            <div class="text-2xl mb-1">🥤</div>
+                            <div class="text-xs text-gray-600">250ml</div>
+                        </button>
+                        <button onclick="addWater(500)" class="flex-1 bg-white/50 hover:bg-white/80 border border-white/30 rounded-xl py-3 px-4 text-center transition-all duration-200">
+                            <div class="text-2xl mb-1">🍶</div>
+                            <div class="text-xs text-gray-600">500ml</div>
+                        </button>
+                        <button onclick="addWater(750)" class="flex-1 bg-white/50 hover:bg-white/80 border border-white/30 rounded-xl py-3 px-4 text-center transition-all duration-200">
+                            <div class="text-2xl mb-1">🧴</div>
+                            <div class="text-xs text-gray-600">750ml</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
