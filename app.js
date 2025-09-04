@@ -2,6 +2,7 @@
 class HydrateApp {
     constructor() {
         this.reminderInterval = null;
+        this.countdownInterval = null; // 倒计时定时器
         this.selectedMinutes = 60; // 默认1小时
         this.isActive = false;
         this.nextReminderTime = null;
@@ -119,6 +120,11 @@ class HydrateApp {
             this.reminderInterval = null;
         }
 
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
+        }
+
         // 通知Service Worker停止后台提醒
         await this.updateServiceWorkerSettings();
 
@@ -132,6 +138,7 @@ class HydrateApp {
     setNextReminderTime() {
         this.nextReminderTime = new Date(Date.now() + this.selectedMinutes * 60 * 1000);
         this.updateNextReminderDisplay();
+        this.startCountdown();
     }
     
     updateNextReminderDisplay() {
@@ -208,12 +215,12 @@ class HydrateApp {
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
             reminderStatus.className = 'px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700';
-            reminderStatus.textContent = '已开启';
+            reminderStatus.textContent = '在线';
         } else {
             startBtn.classList.remove('hidden');
             stopBtn.classList.add('hidden');
             reminderStatus.className = 'px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600';
-            reminderStatus.textContent = '未开启';
+            reminderStatus.textContent = '离线';
         }
     }
 
@@ -384,6 +391,116 @@ class HydrateApp {
             });
 
             console.log('已同步设置到Service Worker:', settings);
+        }
+    }
+
+    // 倒计时功能
+    startCountdown() {
+        // 清除之前的倒计时
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+
+        const totalSeconds = this.selectedMinutes * 60;
+
+        this.countdownInterval = setInterval(() => {
+            if (!this.isActive || !this.nextReminderTime) {
+                this.stopCountdown();
+                return;
+            }
+
+            const now = new Date().getTime();
+            const targetTime = this.nextReminderTime.getTime();
+            const remainingTime = targetTime - now;
+
+            if (remainingTime <= 0) {
+                this.stopCountdown();
+                return;
+            }
+
+            const remainingSeconds = Math.floor(remainingTime / 1000);
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+
+            // 更新倒计时显示
+            this.updateCountdownDisplay(minutes, seconds);
+
+            // 更新进度条
+            const progress = ((totalSeconds - remainingSeconds) / totalSeconds) * 100;
+            this.updateCountdownProgress(progress);
+
+        }, 1000);
+    }
+
+    stopCountdown() {
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
+        }
+
+        // 隐藏倒计时显示
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        if (countdownDisplay) {
+            countdownDisplay.style.display = 'none';
+        }
+    }
+
+    updateCountdownDisplay(minutes, seconds) {
+        const minutesElement = document.getElementById('countdownMinutes');
+        const secondsElement = document.getElementById('countdownSeconds');
+        const countdownDisplay = document.getElementById('countdownDisplay');
+
+        if (minutesElement && secondsElement && countdownDisplay) {
+            // 显示倒计时
+            countdownDisplay.style.display = 'block';
+
+            // 格式化数字显示
+            const formattedMinutes = minutes.toString().padStart(2, '0');
+            const formattedSeconds = seconds.toString().padStart(2, '0');
+
+            // 添加数字翻转动画
+            if (minutesElement.textContent !== formattedMinutes) {
+                minutesElement.style.animation = 'digit-flip 0.3s ease-in-out';
+                setTimeout(() => {
+                    minutesElement.textContent = formattedMinutes;
+                    minutesElement.style.animation = '';
+                }, 150);
+            }
+
+            if (secondsElement.textContent !== formattedSeconds) {
+                secondsElement.style.animation = 'digit-flip 0.3s ease-in-out';
+                setTimeout(() => {
+                    secondsElement.textContent = formattedSeconds;
+                    secondsElement.style.animation = '';
+                }, 150);
+            }
+
+            // 最后10秒时添加紧急效果
+            if (minutes === 0 && seconds <= 10) {
+                countdownDisplay.style.animation = 'countdown-pulse 0.5s ease-in-out infinite';
+                minutesElement.style.color = '#ef4444';
+                secondsElement.style.color = '#ef4444';
+            } else {
+                countdownDisplay.style.animation = '';
+                minutesElement.style.color = '#06b6d4';
+                secondsElement.style.color = '#06b6d4';
+            }
+        }
+    }
+
+    updateCountdownProgress(progress) {
+        const progressElement = document.getElementById('countdownProgress');
+        if (progressElement) {
+            progressElement.style.width = `${Math.max(0, 100 - progress)}%`;
+
+            // 根据剩余时间改变颜色
+            if (progress > 90) {
+                progressElement.style.background = 'linear-gradient(to right, #ef4444, #dc2626)';
+            } else if (progress > 75) {
+                progressElement.style.background = 'linear-gradient(to right, #f59e0b, #d97706)';
+            } else {
+                progressElement.style.background = 'linear-gradient(to right, #06b6d4, #6366f1)';
+            }
         }
     }
 }

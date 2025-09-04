@@ -1,5 +1,5 @@
 // Enhanced Service Worker for PWA with Background Push
-const CACHE_NAME = 'aquaflow-v2';
+const CACHE_NAME = 'drink-water-helper-v2';
 const urlsToCache = [
     './',
     './index.html',
