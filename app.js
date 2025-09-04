@@ -42,6 +42,31 @@ class HydrateApp {
             this.stopReminder();
         });
         
+        // 自定义时间输入事件
+        const customInput = document.getElementById('customMinutesInput');
+        const setCustomBtn = document.getElementById('setCustomTimeBtn');
+
+        if (customInput && setCustomBtn) {
+            // 输入框回车事件
+            customInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.setCustomTime();
+                }
+            });
+
+            // 设置按钮点击事件
+            setCustomBtn.addEventListener('click', () => {
+                this.setCustomTime();
+            });
+
+            // 输入验证
+            customInput.addEventListener('input', (e) => {
+                let value = parseInt(e.target.value);
+                if (value < 1) e.target.value = 1;
+                if (value > 1440) e.target.value = 1440;
+            });
+        }
+
         // 页面可见性变化事件
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && this.isActive) {
@@ -53,13 +78,16 @@ class HydrateApp {
     selectTimeInterval(button) {
         // 移除其他按钮的active类
         document.querySelectorAll('.time-btn').forEach(btn => {
-            btn.classList.remove('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700');
-            btn.classList.add('border-gray-200', 'bg-white');
+            btn.classList.remove('active', 'border-indigo-500', 'bg-indigo-500/20', 'text-indigo-300');
+            btn.classList.add('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
         });
 
         // 添加active类到当前按钮
-        button.classList.add('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700');
-        button.classList.remove('border-gray-200', 'bg-white');
+        button.classList.add('active', 'border-indigo-500', 'bg-indigo-500/20', 'text-indigo-300');
+        button.classList.remove('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
+
+        // 清空自定义输入框
+        this.clearCustomInput();
 
         // 保存选择的时间间隔
         this.selectedMinutes = parseInt(button.dataset.minutes);
@@ -67,8 +95,93 @@ class HydrateApp {
 
         // 如果正在运行，重新启动以应用新的间隔
         if (this.isActive) {
-            this.stopReminder();
-            setTimeout(() => this.startReminder(), 100);
+            this.restartReminder();
+        }
+    }
+
+    clearCustomInput() {
+        const customInput = document.getElementById('customMinutesInput');
+        if (customInput) {
+            customInput.value = '';
+        }
+    }
+
+    setCustomTime() {
+        const customInput = document.getElementById('customMinutesInput');
+        if (!customInput) return;
+
+        const minutes = parseInt(customInput.value);
+
+        if (isNaN(minutes) || minutes < 1 || minutes > 1440) {
+            alert('请输入有效的分钟数（1-1440分钟）');
+            return;
+        }
+
+        // 清除所有预设按钮的激活状态
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            btn.classList.remove('active', 'border-indigo-500', 'bg-indigo-500/20', 'text-indigo-300');
+            btn.classList.add('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
+        });
+
+        this.selectedMinutes = minutes;
+        this.saveSettings();
+
+        // 显示成功提示
+        this.showCustomTimeSuccess(minutes);
+
+        // 如果提醒正在运行，重新启动以应用新的间隔
+        if (this.isActive) {
+            this.restartReminder();
+        }
+    }
+
+    showCustomTimeSuccess(minutes) {
+        const setBtn = document.getElementById('setCustomTimeBtn');
+        if (setBtn) {
+            const originalText = setBtn.innerHTML;
+            setBtn.innerHTML = '<i class="fas fa-check mr-1"></i>已设置';
+            setBtn.classList.add('bg-green-600');
+            setBtn.classList.remove('bg-gradient-to-r', 'from-indigo-600', 'to-cyan-600');
+
+            setTimeout(() => {
+                setBtn.innerHTML = originalText;
+                setBtn.classList.remove('bg-green-600');
+                setBtn.classList.add('bg-gradient-to-r', 'from-indigo-600', 'to-cyan-600');
+            }, 2000);
+        }
+
+        // 显示当前设置的时间
+        console.log(`自定义提醒间隔已设置为 ${minutes} 分钟`);
+    }
+
+    restartReminder() {
+        this.stopReminder();
+        setTimeout(() => this.startReminder(), 100);
+    }
+
+    restoreTimeSelection() {
+        // 先清除所有按钮的激活状态
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            btn.classList.remove('active', 'border-indigo-500', 'bg-indigo-500/20', 'text-indigo-300');
+            btn.classList.add('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
+        });
+
+        // 检查是否有预设按钮匹配当前时间
+        let foundPresetButton = false;
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            if (parseInt(btn.dataset.minutes) === this.selectedMinutes) {
+                btn.classList.add('active', 'border-indigo-500', 'bg-indigo-500/20', 'text-indigo-300');
+                btn.classList.remove('border-gray-700', 'bg-gray-800/50', 'text-gray-300');
+                foundPresetButton = true;
+            }
+        });
+
+        // 如果没有找到预设按钮，说明是自定义时间，显示在输入框中
+        if (!foundPresetButton) {
+            const customInput = document.getElementById('customMinutesInput');
+            if (customInput) {
+                customInput.value = this.selectedMinutes;
+            }
         }
     }
     
@@ -390,14 +503,7 @@ class HydrateApp {
             this.theme = settings.theme || 'cyber';
 
             // 恢复时间按钮选择
-            document.querySelectorAll('.time-btn').forEach(btn => {
-                btn.classList.remove('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700');
-                btn.classList.add('border-gray-200', 'bg-white');
-                if (parseInt(btn.dataset.minutes) === this.selectedMinutes) {
-                    btn.classList.add('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700');
-                    btn.classList.remove('border-gray-200', 'bg-white');
-                }
-            });
+            this.restoreTimeSelection();
 
             // 如果之前是激活状态，恢复提醒
             if (settings.isActive) {

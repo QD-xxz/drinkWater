@@ -331,7 +331,9 @@
                     <!-- 时间间隔选择 -->
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-300 mb-4 font-mono uppercase tracking-wider">提醒间隔</label>
-                        <div class="grid grid-cols-2 gap-3">
+
+                        <!-- 快速选择按钮 -->
+                        <div class="grid grid-cols-2 gap-3 mb-4">
                             <button class="time-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-indigo-500 hover:bg-indigo-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-minutes="30">
                                 30 分钟
                             </button>
@@ -344,6 +346,25 @@
                             <button class="time-btn px-4 py-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:border-indigo-500 hover:bg-indigo-500/10 transition-all duration-300 text-sm font-mono text-gray-300" data-minutes="120">
                                 120 分钟
                             </button>
+                        </div>
+
+                        <!-- 自定义时间输入 -->
+                        <div class="holographic rounded-xl p-4">
+                            <label class="block text-xs font-medium text-gray-400 mb-2 font-mono uppercase tracking-wider">自定义间隔</label>
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-1">
+                                    <input id="customMinutesInput" type="number" min="1" max="1440" placeholder="输入分钟数"
+                                           class="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white text-sm font-mono focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors">
+                                </div>
+                                <span class="text-gray-400 text-sm font-mono">分钟</span>
+                                <button id="setCustomTimeBtn" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 text-white rounded-lg text-sm font-mono hover:from-indigo-500 hover:to-cyan-500 transition-all duration-300 shadow-md">
+                                    <i class="fas fa-check mr-1"></i>
+                                    设置
+                                </button>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-500 font-mono">
+                                💡 支持 1-1440 分钟（1分钟到24小时）
+                            </div>
                         </div>
                     </div>
 
