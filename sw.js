@@ -105,48 +105,122 @@ self.addEventListener('fetch', (event) => {
 
 // 处理推送通知
 self.addEventListener('push', (event) => {
+    console.log('Service Worker 收到推送事件');
+
+    const messages = [
+        '💕 亲爱的，该喝水啦！',
+        '💧 记得补充水分哦～',
+        '🥰 喝口水，保持美丽！',
+        '💖 爱你，所以提醒你喝水',
+        '🌸 水润肌肤从现在开始',
+        '💝 健康的你最美丽'
+    ];
+
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+
+    // 检测用户代理来判断是否为iOS
+    const userAgent = self.navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+
     const options = {
-        body: '💕 亲爱的，该喝水啦！',
-        icon: 'icons/icon-192x192.png',
-        badge: 'icons/icon-72x72.png',
-        vibrate: [200, 100, 200],
+        body: randomMessage,
+        icon: './icons/icon-192x192.png',
+        tag: 'drink-water-reminder',
+        renotify: true,
+        requireInteraction: !isIOS, // iOS不支持requireInteraction
+        silent: false,
+        vibrate: [200, 100, 200, 100, 500],
+        timestamp: Date.now(),
         data: {
             dateOfArrival: Date.now(),
-            primaryKey: 1
-        },
-        actions: [
+            primaryKey: 1,
+            url: './'
+        }
+    };
+
+    // 非iOS设备添加操作按钮和badge
+    if (!isIOS) {
+        options.badge = './icons/icon-72x72.png';
+        options.actions = [
             {
                 action: 'drink',
                 title: '已喝水 💧',
-                icon: 'icons/icon-72x72.png'
+                icon: './icons/icon-72x72.png'
             },
             {
                 action: 'snooze',
                 title: '稍后提醒 ⏰',
-                icon: 'icons/icon-72x72.png'
+                icon: './icons/icon-72x72.png'
             }
-        ]
-    };
-    
+        ];
+    }
+
+    console.log('Service Worker 显示通知，iOS设备:', isIOS);
+
     event.waitUntil(
-        self.registration.showNotification('喝水提醒', options)
+        self.registration.showNotification('💧 喝水提醒', options)
+            .then(() => {
+                console.log('Service Worker 通知显示成功');
+            })
+            .catch(error => {
+                console.error('Service Worker 通知显示失败:', error);
+            })
     );
 });
 
 // 处理通知点击
 self.addEventListener('notificationclick', (event) => {
+    console.log('Service Worker 通知被点击:', event.action);
     event.notification.close();
-    
+
     if (event.action === 'drink') {
-        // 用户已喝水，可以记录或发送反馈
+        // 用户已喝水，发送消息给主应用
         console.log('用户已喝水');
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true })
+                .then(clientList => {
+                    if (clientList.length > 0) {
+                        // 如果应用已打开，发送消息
+                        clientList[0].postMessage({
+                            type: 'WATER_CONSUMED',
+                            amount: 250
+                        });
+                        return clientList[0].focus();
+                    } else {
+                        // 如果应用未打开，打开应用
+                        return clients.openWindow('./');
+                    }
+                })
+        );
     } else if (event.action === 'snooze') {
-        // 稍后提醒，可以设置延迟
+        // 稍后提醒，延迟10分钟
         console.log('用户选择稍后提醒');
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true })
+                .then(clientList => {
+                    if (clientList.length > 0) {
+                        clientList[0].postMessage({
+                            type: 'SNOOZE_REMINDER',
+                            delay: 10 // 10分钟后再次提醒
+                        });
+                        return clientList[0].focus();
+                    } else {
+                        return clients.openWindow('./');
+                    }
+                })
+        );
     } else {
         // 点击通知本身，打开应用
+        console.log('点击通知本身，打开应用');
         event.waitUntil(
-            clients.openWindow('/')
+            clients.matchAll({ type: 'window', includeUncontrolled: true })
+                .then(clientList => {
+                    if (clientList.length > 0) {
+                        return clientList[0].focus();
+                    } else {
+                        return clients.openWindow('./');
+                    }
+                })
         );
     }
 });

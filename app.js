@@ -219,22 +219,57 @@ class HydrateApp {
     async requestNotificationPermission() {
         if ('Notification' in window) {
             try {
+                // 检测iOS设备
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+                if (isIOS) {
+                    // iOS设备特殊处理
+                    console.log('检测到iOS设备，使用iOS兼容的权限请求');
+                }
+
                 const permission = await Notification.requestPermission();
                 this.updateNotificationStatus();
 
                 if (permission === 'granted') {
-                    this.showTestNotification();
+                    // 延迟一下再显示测试通知，确保权限已生效
+                    setTimeout(() => {
+                        this.showTestNotification();
+                    }, 500);
                     return true;
+                } else if (permission === 'denied') {
+                    const message = isIOS
+                        ? '通知权限被拒绝。请在iPhone设置 > Safari > 网站设置中开启通知权限。'
+                        : '通知权限被拒绝，您将无法收到喝水提醒。\n您可以在浏览器设置中手动开启通知权限。';
+                    alert(message);
+                    return false;
                 } else {
-                    alert('通知权限被拒绝，您将无法收到喝水提醒。\n您可以在浏览器设置中手动开启通知权限。');
+                    // permission === 'default'
+                    console.log('用户未做选择，权限状态为default');
                     return false;
                 }
             } catch (error) {
                 console.error('请求通知权限失败:', error);
+                // iOS Safari可能不支持Promise形式，尝试回调形式
+                if (typeof Notification.requestPermission === 'function') {
+                    try {
+                        Notification.requestPermission((permission) => {
+                            this.updateNotificationStatus();
+                            if (permission === 'granted') {
+                                setTimeout(() => {
+                                    this.showTestNotification();
+                                }, 500);
+                            }
+                        });
+                    } catch (callbackError) {
+                        console.error('回调形式权限请求也失败:', callbackError);
+                    }
+                }
                 return false;
             }
+        } else {
+            alert('您的浏览器不支持通知功能。建议使用Chrome、Firefox或Safari浏览器。');
+            return false;
         }
-        return false;
     }
 
     updateNotificationStatus() {
@@ -266,11 +301,33 @@ class HydrateApp {
 
     showTestNotification() {
         if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('测试通知', {
-                body: '🎉 太棒了！通知功能正常工作，您将收到及时的喝水提醒！',
-                icon: 'icons/icon-192x192.png',
-                tag: 'test-notification'
-            });
+            try {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+                const testNotification = new Notification('🧪 测试通知', {
+                    body: '🎉 太棒了！通知功能正常工作，您将收到及时的喝水提醒！',
+                    icon: './icons/icon-192x192.png',
+                    tag: 'test-notification',
+                    requireInteraction: !isIOS, // iOS不支持requireInteraction
+                    timestamp: Date.now()
+                });
+
+                testNotification.onclick = () => {
+                    window.focus();
+                    testNotification.close();
+                };
+
+                // 自动关闭测试通知
+                setTimeout(() => {
+                    testNotification.close();
+                }, 5000);
+
+            } catch (error) {
+                console.error('测试通知失败:', error);
+                alert('测试通知失败，但这不影响正常的提醒功能。');
+            }
+        } else {
+            alert('请先开启通知权限！');
         }
     }
     
@@ -353,43 +410,109 @@ class HydrateApp {
             '🌸 水润肌肤从现在开始',
             '💝 健康的你最美丽'
         ];
-        
+
         const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-        
+
+        // 检查是否支持通知
         if ('Notification' in window && Notification.permission === 'granted') {
-            const notification = new Notification('喝水提醒', {
-                body: randomMessage,
-                icon: 'icons/icon-192x192.png',
-                badge: 'icons/icon-72x72.png',
-                tag: 'drink-water-reminder',
-                requireInteraction: true,
-                actions: [
-                    {
-                        action: 'drink',
-                        title: '已喝水 💧'
-                    },
-                    {
-                        action: 'snooze',
-                        title: '稍后提醒 ⏰'
+            try {
+                // 创建通知配置
+                const notificationOptions = {
+                    body: randomMessage,
+                    icon: './icons/icon-192x192.png',
+                    badge: './icons/icon-72x72.png',
+                    tag: 'drink-water-reminder',
+                    renotify: true,
+                    requireInteraction: true,
+                    silent: false,
+                    timestamp: Date.now(),
+                    data: {
+                        url: window.location.href,
+                        timestamp: Date.now()
                     }
-                ]
-            });
-            
-            // 自动关闭通知
-            setTimeout(() => {
-                notification.close();
-            }, 10000);
-            
-            // 点击通知时的处理
-            notification.onclick = () => {
-                window.focus();
-                notification.close();
-            };
+                };
+
+                // iOS Safari 特殊处理
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                if (isIOS) {
+                    // iOS 不支持 actions，移除它们
+                    delete notificationOptions.actions;
+                    delete notificationOptions.badge;
+                    // iOS 需要更简单的配置
+                    notificationOptions.requireInteraction = false;
+                } else {
+                    // 非iOS设备添加操作按钮
+                    notificationOptions.actions = [
+                        {
+                            action: 'drink',
+                            title: '已喝水 💧'
+                        },
+                        {
+                            action: 'snooze',
+                            title: '稍后提醒 ⏰'
+                        }
+                    ];
+                }
+
+                const notification = new Notification('💧 喝水提醒', notificationOptions);
+
+                // 通知事件处理
+                notification.onclick = (event) => {
+                    event.preventDefault();
+                    window.focus();
+                    notification.close();
+                    // 记录用户点击
+                    console.log('用户点击了通知');
+                };
+
+                notification.onshow = () => {
+                    console.log('通知已显示');
+                };
+
+                notification.onerror = (error) => {
+                    console.error('通知显示错误:', error);
+                };
+
+                // iOS设备自动关闭时间更短
+                const autoCloseTime = isIOS ? 5000 : 10000;
+                setTimeout(() => {
+                    if (notification) {
+                        notification.close();
+                    }
+                }, autoCloseTime);
+
+            } catch (error) {
+                console.error('创建通知失败:', error);
+                // 降级处理：使用浏览器alert
+                this.showFallbackAlert(randomMessage);
+            }
+        } else {
+            // 降级处理：使用浏览器alert
+            this.showFallbackAlert(randomMessage);
         }
-        
-        // 如果支持振动，添加振动提醒
+
+        // 添加振动提醒（移动设备）
+        this.addVibration();
+    }
+
+    showFallbackAlert(message) {
+        // 降级处理：使用浏览器原生alert
+        if (confirm(`💧 ${message}\n\n点击"确定"记录已喝水，点击"取消"稍后提醒`)) {
+            // 用户点击确定，记录喝水
+            this.addWater(250);
+        }
+        // 用户点击取消或关闭，不做任何操作，等待下次提醒
+    }
+
+    addVibration() {
+        // 检查是否支持振动API
         if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]);
+            try {
+                // 振动模式：短-停-短-停-长
+                navigator.vibrate([200, 100, 200, 100, 500]);
+            } catch (error) {
+                console.log('振动功能不可用:', error);
+            }
         }
     }
     
@@ -553,6 +676,32 @@ class HydrateApp {
             case 'REMINDER_TRIGGERED':
                 // 可以在这里添加额外的UI反馈
                 break;
+            case 'WATER_CONSUMED':
+                // 用户通过通知记录了喝水
+                this.addWater(data.amount || 250);
+                console.log('通过通知记录喝水:', data.amount || 250, 'ml');
+                break;
+            case 'SNOOZE_REMINDER':
+                // 用户选择稍后提醒
+                this.snoozeReminder(data.delay || 10);
+                console.log('用户选择稍后提醒:', data.delay || 10, '分钟');
+                break;
+        }
+    }
+
+    snoozeReminder(delayMinutes) {
+        if (this.isActive) {
+            // 停止当前提醒
+            this.stopReminder();
+
+            // 延迟指定时间后重新启动
+            setTimeout(() => {
+                this.startReminder();
+                console.log(`延迟 ${delayMinutes} 分钟后重新启动提醒`);
+            }, delayMinutes * 60 * 1000);
+
+            // 显示延迟提示
+            console.log(`提醒已延迟 ${delayMinutes} 分钟`);
         }
     }
 
