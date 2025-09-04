@@ -21,7 +21,8 @@ class HydrateApp {
         this.updateProgressRing();
         this.updateWaterDisplay();
         this.registerServiceWorker();
-        this.requestNotificationPermission();
+        this.checkNotificationPermission();
+        this.bindNotificationEvents();
     }
     
     bindEvents() {
@@ -71,26 +72,99 @@ class HydrateApp {
         }
     }
     
-    async requestNotificationPermission() {
+    checkNotificationPermission() {
         if ('Notification' in window) {
-            if (Notification.permission === 'default') {
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') {
-                    alert('请允许通知权限，以便接收喝水提醒！');
-                }
+            this.updateNotificationStatus();
+
+            // 如果是第一次访问且权限为default，显示权限请求弹窗
+            const hasShownModal = localStorage.getItem('notificationModalShown');
+            if (Notification.permission === 'default' && !hasShownModal) {
+                setTimeout(() => {
+                    this.showNotificationModal();
+                }, 2000); // 延迟2秒显示，让用户先熟悉界面
             }
         } else {
             console.warn('此浏览器不支持通知功能');
         }
     }
+
+    showNotificationModal() {
+        const modal = document.getElementById('notificationModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    hideNotificationModal() {
+        const modal = document.getElementById('notificationModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+        localStorage.setItem('notificationModalShown', 'true');
+    }
+
+    async requestNotificationPermission() {
+        if ('Notification' in window) {
+            try {
+                const permission = await Notification.requestPermission();
+                this.updateNotificationStatus();
+
+                if (permission === 'granted') {
+                    this.showTestNotification();
+                    return true;
+                } else {
+                    alert('通知权限被拒绝，您将无法收到喝水提醒。\n您可以在浏览器设置中手动开启通知权限。');
+                    return false;
+                }
+            } catch (error) {
+                console.error('请求通知权限失败:', error);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    updateNotificationStatus() {
+        const statusElement = document.getElementById('notificationStatus');
+        if (statusElement && 'Notification' in window) {
+            const permission = Notification.permission;
+            let statusText = '';
+            let statusClass = '';
+
+            switch (permission) {
+                case 'granted':
+                    statusText = '✅ 通知权限已开启';
+                    statusClass = 'text-green-400';
+                    break;
+                case 'denied':
+                    statusText = '❌ 通知权限被拒绝';
+                    statusClass = 'text-red-400';
+                    break;
+                case 'default':
+                    statusText = '⚠️ 尚未设置通知权限';
+                    statusClass = 'text-yellow-400';
+                    break;
+            }
+
+            statusElement.textContent = statusText;
+            statusElement.className = `text-xs text-center font-mono ${statusClass}`;
+        }
+    }
+
+    showTestNotification() {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('测试通知', {
+                body: '🎉 太棒了！通知功能正常工作，您将收到及时的喝水提醒！',
+                icon: 'icons/icon-192x192.png',
+                tag: 'test-notification'
+            });
+        }
+    }
     
     async startReminder() {
-        if (Notification.permission !== 'granted') {
-            alert('请先允许通知权限！');
-            await this.requestNotificationPermission();
-            if (Notification.permission !== 'granted') {
-                return;
-            }
+        if ('Notification' in window && Notification.permission !== 'granted') {
+            this.showNotificationModal();
+            return;
         }
 
         this.isActive = true;
@@ -501,6 +575,45 @@ class HydrateApp {
             } else {
                 progressElement.style.background = 'linear-gradient(to right, #06b6d4, #6366f1)';
             }
+        }
+    }
+
+    bindNotificationEvents() {
+        // 通知权限弹窗事件
+        const enableBtn = document.getElementById('enableNotificationBtn');
+        const skipBtn = document.getElementById('skipNotificationBtn');
+        const testBtn = document.getElementById('testNotificationBtn');
+        const requestBtn = document.getElementById('requestPermissionBtn');
+
+        if (enableBtn) {
+            enableBtn.addEventListener('click', async () => {
+                const granted = await this.requestNotificationPermission();
+                if (granted) {
+                    this.hideNotificationModal();
+                }
+            });
+        }
+
+        if (skipBtn) {
+            skipBtn.addEventListener('click', () => {
+                this.hideNotificationModal();
+            });
+        }
+
+        if (testBtn) {
+            testBtn.addEventListener('click', () => {
+                if (Notification.permission === 'granted') {
+                    this.showTestNotification();
+                } else {
+                    alert('请先开启通知权限！');
+                }
+            });
+        }
+
+        if (requestBtn) {
+            requestBtn.addEventListener('click', async () => {
+                await this.requestNotificationPermission();
+            });
         }
     }
 }
